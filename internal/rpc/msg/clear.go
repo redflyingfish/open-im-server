@@ -17,63 +17,8 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// hard delete in Database.
-func (m *msgServer) ClearMsg(ctx context.Context, req *msg.ClearMsgReq) (_ *msg.ClearMsgResp, err error) {
-	if err := authverify.CheckAdmin(ctx, m.config.Share.IMAdminUserID); err != nil {
-		return nil, err
-	}
-	if req.Timestamp > time.Now().UnixMilli() {
-		return nil, errs.ErrArgs.WrapMsg("request millisecond timestamp error")
-	}
-	var (
-		docNum int
-		msgNum int
-		start  = time.Now()
-	)
-
-	clearMsg := func(ctx context.Context) (bool, error) {
-		docIDs, err := m.MsgDatabase.GetDocIDs(ctx)
-		if err != nil {
-			return false, err
-		}
-
-		msgs, err := m.MsgDatabase.GetBeforeMsg(ctx, req.Timestamp, docIDs, 5000)
-		if err != nil {
-			return false, err
-		}
-		if len(msgs) == 0 {
-			return false, nil
-		}
-
-		for _, msg := range msgs {
-			index, err := m.MsgDatabase.DeleteDocMsgBefore(ctx, req.Timestamp, msg)
-			if err != nil {
-				return false, err
-			}
-			if len(index) == 0 {
-				return false, errs.ErrInternalServer.WrapMsg("delete doc msg failed")
-			}
-
-			docNum++
-			msgNum += len(index)
-		}
-
-		return true, nil
-	}
-
-	_, err = clearMsg(ctx)
-	if err != nil {
-		log.ZError(ctx, "clear msg failed", err, "docNum", docNum, "msgNum", msgNum, "cost", time.Since(start))
-		return nil, err
-	}
-
-	log.ZDebug(ctx, "clearing message", "docNum", docNum, "msgNum", msgNum, "cost", time.Since(start))
-
-	return &msg.ClearMsgResp{}, nil
-}
-
 // soft delete for self
-func (m *msgServer) DestructMsgs(ctx context.Context, req *msg.DestructMsgsReq) (_ *msg.DestructMsgsResp, err error) {
+func (m *msgServer) ClearMsg(ctx context.Context, req *msg.ClearMsgReq) (_ *msg.ClearMsgResp, err error) {
 	temp := convert.ConversationsPb2DB(req.Conversations)
 
 	batchNum := 100
@@ -121,5 +66,64 @@ func (m *msgServer) DestructMsgs(ctx context.Context, req *msg.DestructMsgsReq) 
 		return nil, err
 	}
 
-	return nil, nil
+	return &msg.ClearMsgResp{}, nil
+}
+
+// hard delete in Database.
+func (m *msgServer) DestructMsgs(ctx context.Context, req *msg.DestructMsgsReq) (_ *msg.DestructMsgsResp, err error) {
+	if err := authverify.CheckAdmin(ctx, m.config.Share.IMAdminUserID); err != nil {
+		return nil, err
+	}
+	if req.GetTimestamp() > time.Now().UnixMilli() {
+		return nil, errs.ErrArgs.WrapMsg("request millisecond timestamp error")
+	}
+	var (
+		docNum int
+		msgNum int
+		start  = time.Now()
+	)
+
+	clearMsg := func(ctx context.Context) (bool, error) {
+		docIDs, err := m.MsgDatabase.GetDocIDs(ctx)
+		if err != nil {
+			return false, err
+		}
+
+		limit := int(req.GetLimit())
+		if limit <= 0 {
+			limit = 5000
+		}
+		msgs, err := m.MsgDatabase.GetBeforeMsg(ctx, req.GetTimestamp(), docIDs, limit)
+		if err != nil {
+			return false, err
+		}
+		if len(msgs) == 0 {
+			return false, nil
+		}
+
+		for _, msg := range msgs {
+			index, err := m.MsgDatabase.DeleteDocMsgBefore(ctx, req.GetTimestamp(), msg)
+			if err != nil {
+				return false, err
+			}
+			if len(index) == 0 {
+				return false, errs.ErrInternalServer.WrapMsg("delete doc msg failed")
+			}
+
+			docNum++
+			msgNum += len(index)
+		}
+
+		return true, nil
+	}
+
+	_, err = clearMsg(ctx)
+	if err != nil {
+		log.ZError(ctx, "clear msg failed", err, "docNum", docNum, "msgNum", msgNum, "cost", time.Since(start))
+		return nil, err
+	}
+
+	log.ZDebug(ctx, "clearing message", "docNum", docNum, "msgNum", msgNum, "cost", time.Since(start))
+
+	return &msg.DestructMsgsResp{Count: int32(docNum)}, nil
 }

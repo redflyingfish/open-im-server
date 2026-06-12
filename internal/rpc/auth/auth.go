@@ -40,6 +40,8 @@ import (
 )
 
 type authServer struct {
+	pbauth.UnimplementedAuthServer
+
 	authDatabase   controller.AuthDatabase
 	userRpcClient  *rpcclient.UserRpcClient
 	RegisterCenter discovery.SvcDiscoveryRegistry

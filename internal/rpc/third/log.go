@@ -55,7 +55,7 @@ func (t *thirdServer) UploadLogs(ctx context.Context, req *third.UploadLogsReq) 
 			CreateTime: time.Now(),
 			Url:        fileURL.URL,
 			FileName:   fileURL.Filename,
-			SystemType: req.SystemType,
+			SystemType: "",
 			Version:    req.Version,
 			Ex:         req.Ex,
 		}
