@@ -42,6 +42,8 @@ type (
 
 	// MsgServer encapsulates dependencies required for message handling.
 	msgServer struct {
+		msg.UnimplementedMsgServer
+
 		RegisterCenter         discovery.SvcDiscoveryRegistry   // Service discovery registry for service registration.
 		MsgDatabase            controller.CommonMsgDatabase     // Interface for message database operations.
 		Conversation           *rpcclient.ConversationRpcClient // RPC client for conversation service.
@@ -138,12 +140,4 @@ func (m *msgServer) conversationAndGetRecvID(conversation *conversation.Conversa
 		return conversation.GroupID
 	}
 	return ""
-}
-
-func (m *msgServer) AppendStreamMsg(ctx context.Context, req *msg.AppendStreamMsgReq) (*msg.AppendStreamMsgResp, error) {
-	return nil, nil
-}
-
-func (m *msgServer) GetStreamMsg(ctx context.Context, req *msg.GetStreamMsgReq) (*msg.GetStreamMsgResp, error) {
-	return nil, nil
 }

@@ -43,6 +43,8 @@ import (
 )
 
 type friendServer struct {
+	relation.UnimplementedFriendServer
+
 	db                    controller.FriendDatabase
 	blackDatabase         controller.BlackDatabase
 	userRpcClient         *rpcclient.UserRpcClient

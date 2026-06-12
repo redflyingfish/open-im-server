@@ -153,7 +153,7 @@ func (c *ConversationRpcClient) GetConversationNotReceiveMessageUserIDs(ctx cont
 }
 
 func (c *ConversationRpcClient) GetConversationsNeedDestructMsgs(ctx context.Context) ([]*pbconversation.Conversation, error) {
-	resp, err := c.Client.GetConversationsNeedDestructMsgs(ctx, &pbconversation.GetConversationsNeedDestructMsgsReq{})
+	resp, err := c.Client.GetConversationsNeedClearMsg(ctx, &pbconversation.GetConversationsNeedClearMsgReq{})
 	if err != nil {
 		return nil, err
 	}

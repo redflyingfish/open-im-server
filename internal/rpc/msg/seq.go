@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	pbmsg "github.com/openimsdk/protocol/msg"
+	"github.com/openimsdk/tools/errs"
 	"github.com/redis/go-redis/v9"
 	"sort"
 )
@@ -61,6 +62,40 @@ func (m *msgServer) SetUserConversationsMinSeq(ctx context.Context, req *pbmsg.S
 		}
 	}
 	return &pbmsg.SetUserConversationsMinSeqResp{}, nil
+}
+
+func (m *msgServer) SetUserConversationMaxSeq(ctx context.Context, req *pbmsg.SetUserConversationMaxSeqReq) (*pbmsg.SetUserConversationMaxSeqResp, error) {
+	for _, userID := range req.OwnerUserID {
+		if err := m.MsgDatabase.SetUserConversationsMaxSeqs(ctx, userID, map[string]int64{req.ConversationID: req.MaxSeq}); err != nil {
+			return nil, err
+		}
+	}
+	return &pbmsg.SetUserConversationMaxSeqResp{}, nil
+}
+
+func (m *msgServer) SetUserConversationMinSeq(ctx context.Context, req *pbmsg.SetUserConversationMinSeqReq) (*pbmsg.SetUserConversationMinSeqResp, error) {
+	for _, userID := range req.OwnerUserID {
+		if err := m.MsgDatabase.SetUserConversationsMinSeqs(ctx, userID, map[string]int64{req.ConversationID: req.MinSeq}); err != nil {
+			return nil, err
+		}
+	}
+	return &pbmsg.SetUserConversationMinSeqResp{}, nil
+}
+
+func (m *msgServer) GetLastMessageSeqByTime(ctx context.Context, req *pbmsg.GetLastMessageSeqByTimeReq) (*pbmsg.GetLastMessageSeqByTimeResp, error) {
+	return nil, errs.ErrInternalServer.WrapMsg("GetLastMessageSeqByTime is not supported by this server version")
+}
+
+func (m *msgServer) GetLastMessage(ctx context.Context, req *pbmsg.GetLastMessageReq) (*pbmsg.GetLastMessageResp, error) {
+	maxSeqs, err := m.MsgDatabase.GetMaxSeqs(ctx, req.ConversationIDs)
+	if err != nil {
+		return nil, err
+	}
+	msgs, err := m.MsgDatabase.FindOneByDocIDs(ctx, req.ConversationIDs, maxSeqs)
+	if err != nil {
+		return nil, err
+	}
+	return &pbmsg.GetLastMessageResp{Msgs: msgs}, nil
 }
 
 func (m *msgServer) GetActiveConversation(ctx context.Context, req *pbmsg.GetActiveConversationReq) (*pbmsg.GetActiveConversationResp, error) {
