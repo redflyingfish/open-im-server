@@ -52,6 +52,8 @@ import (
 )
 
 type userServer struct {
+	pbuser.UnimplementedUserServer
+
 	online                   cache.OnlineCache
 	db                       controller.UserDatabase
 	friendNotificationSender *relation.FriendNotificationSender

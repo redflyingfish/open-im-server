@@ -232,6 +232,14 @@ func (m *MessageRpcClient) GetConversationsHasReadAndMaxSeq(ctx context.Context,
 	return resp, nil
 }
 
+func (m *MessageRpcClient) GetConversationsFullSyncSeqs(ctx context.Context, req *msg.GetConversationsFullSyncSeqsReq) (*msg.GetConversationsFullSyncSeqsResp, error) {
+	resp, err := m.Client.GetConversationsFullSyncSeqs(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
 func (m *MessageRpcClient) GetSeqMessage(ctx context.Context, req *msg.GetSeqMessageReq) (*msg.GetSeqMessageResp, error) {
 	return m.Client.GetSeqMessage(ctx, req)
 }
@@ -245,7 +253,7 @@ func (m *MessageRpcClient) GetConversationMaxSeq(ctx context.Context, conversati
 }
 
 func (m *MessageRpcClient) ClearMsg(ctx context.Context, ts int64) error {
-	_, err := m.Client.ClearMsg(ctx, &msg.ClearMsgReq{Timestamp: ts})
+	_, err := m.Client.DestructMsgs(ctx, &msg.DestructMsgsReq{Timestamp: ts, Limit: 5000})
 	return err
 }
 

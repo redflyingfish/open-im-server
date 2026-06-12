@@ -33,6 +33,7 @@ import (
 	"github.com/openimsdk/open-im-server/v3/pkg/rpcclient"
 	"github.com/openimsdk/protocol/constant"
 	pbconversation "github.com/openimsdk/protocol/conversation"
+	pbmsg "github.com/openimsdk/protocol/msg"
 	"github.com/openimsdk/protocol/sdkws"
 	"github.com/openimsdk/tools/db/mongoutil"
 	"github.com/openimsdk/tools/discovery"
@@ -43,13 +44,22 @@ import (
 )
 
 type conversationServer struct {
-	msgRpcClient         *rpcclient.MessageRpcClient
+	pbconversation.UnimplementedConversationServer
+
+	msgRpcClient         messageClient
 	user                 *rpcclient.UserRpcClient
 	groupRpcClient       *rpcclient.GroupRpcClient
 	conversationDatabase controller.ConversationDatabase
 
 	conversationNotificationSender *ConversationNotificationSender
 	config                         *Config
+}
+
+type messageClient interface {
+	GetMaxSeqs(ctx context.Context, conversationIDs []string) (map[string]int64, error)
+	GetMsgByConversationIDs(ctx context.Context, docIDs []string, seqs map[string]int64) (map[string]*sdkws.MsgData, error)
+	GetHasReadSeqs(ctx context.Context, userID string, conversationIDs []string) (map[string]int64, error)
+	GetConversationsFullSyncSeqs(ctx context.Context, req *pbmsg.GetConversationsFullSyncSeqsReq) (*pbmsg.GetConversationsFullSyncSeqsResp, error)
 }
 
 type Config struct {
@@ -669,7 +679,7 @@ func (c *conversationServer) GetOwnerConversation(ctx context.Context, req *pbco
 	}, nil
 }
 
-func (c *conversationServer) GetConversationsNeedDestructMsgs(ctx context.Context, _ *pbconversation.GetConversationsNeedDestructMsgsReq) (*pbconversation.GetConversationsNeedDestructMsgsResp, error) {
+func (c *conversationServer) GetConversationsNeedClearMsg(ctx context.Context, _ *pbconversation.GetConversationsNeedClearMsgReq) (*pbconversation.GetConversationsNeedClearMsgResp, error) {
 	num, err := c.conversationDatabase.GetAllConversationIDsNumber(ctx)
 	if err != nil {
 		log.ZError(ctx, "GetAllConversationIDsNumber failed", err)
@@ -716,7 +726,35 @@ func (c *conversationServer) GetConversationsNeedDestructMsgs(ctx context.Contex
 		}
 	}
 
-	return &pbconversation.GetConversationsNeedDestructMsgsResp{Conversations: convert.ConversationsDB2Pb(temp)}, nil
+	return &pbconversation.GetConversationsNeedClearMsgResp{Conversations: convert.ConversationsDB2Pb(temp)}, nil
+}
+
+func (c *conversationServer) UpdateConversationsByUser(ctx context.Context, req *pbconversation.UpdateConversationsByUserReq) (*pbconversation.UpdateConversationsByUserResp, error) {
+	m := make(map[string]any)
+	if req.Ex != nil {
+		m["ex"] = req.Ex.Value
+	}
+	if len(m) == 0 {
+		return &pbconversation.UpdateConversationsByUserResp{}, nil
+	}
+	conversationIDs, err := c.conversationDatabase.GetConversationIDs(ctx, req.UserID)
+	if err != nil {
+		return nil, err
+	}
+	for _, conversationID := range conversationIDs {
+		if err := c.conversationDatabase.UpdateUsersConversationField(ctx, []string{req.UserID}, conversationID, m); err != nil {
+			return nil, err
+		}
+	}
+	return &pbconversation.UpdateConversationsByUserResp{}, nil
+}
+
+func (c *conversationServer) ClearUserConversationMsg(ctx context.Context, req *pbconversation.ClearUserConversationMsgReq) (*pbconversation.ClearUserConversationMsgResp, error) {
+	return &pbconversation.ClearUserConversationMsgResp{}, errs.ErrInternalServer.WrapMsg("ClearUserConversationMsg is not supported by this server version")
+}
+
+func (c *conversationServer) DeleteConversations(ctx context.Context, req *pbconversation.DeleteConversationsReq) (*pbconversation.DeleteConversationsResp, error) {
+	return &pbconversation.DeleteConversationsResp{}, errs.ErrInternalServer.WrapMsg("DeleteConversations is not supported by this server version")
 }
 
 func (c *conversationServer) GetNotNotifyConversationIDs(ctx context.Context, req *pbconversation.GetNotNotifyConversationIDsReq) (*pbconversation.GetNotNotifyConversationIDsResp, error) {

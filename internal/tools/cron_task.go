@@ -81,7 +81,7 @@ func Start(ctx context.Context, config *CronTaskConfig) error {
 		ctx := mcontext.SetOperationID(ctx, fmt.Sprintf("cron_%d_%d", os.Getpid(), deltime.UnixMilli()))
 		log.ZDebug(ctx, "clear chat records", "deltime", deltime, "timestamp", deltime.UnixMilli())
 
-		if _, err := msgClient.ClearMsg(ctx, &msg.ClearMsgReq{Timestamp: deltime.UnixMilli()}); err != nil {
+		if _, err := msgClient.DestructMsgs(ctx, &msg.DestructMsgsReq{Timestamp: deltime.UnixMilli(), Limit: 5000}); err != nil {
 			log.ZError(ctx, "cron clear chat records failed", err, "deltime", deltime, "cont", time.Since(now))
 			return
 		}
@@ -97,12 +97,12 @@ func Start(ctx context.Context, config *CronTaskConfig) error {
 		ctx := mcontext.SetOperationID(ctx, fmt.Sprintf("cron_%d_%d", os.Getpid(), now.UnixMilli()))
 		log.ZDebug(ctx, "msg destruct cron start", "now", now)
 
-		conversations, err := conversationClient.GetConversationsNeedDestructMsgs(ctx, &pbconversation.GetConversationsNeedDestructMsgsReq{})
+		conversations, err := conversationClient.GetConversationsNeedClearMsg(ctx, &pbconversation.GetConversationsNeedClearMsgReq{})
 		if err != nil {
 			log.ZError(ctx, "Get conversation need Destruct msgs failed.", err)
 			return
 		} else {
-			_, err := msgClient.DestructMsgs(ctx, &msg.DestructMsgsReq{Conversations: conversations.Conversations})
+			_, err := msgClient.ClearMsg(ctx, &msg.ClearMsgReq{Conversations: conversations.Conversations})
 			if err != nil {
 				log.ZError(ctx, "Destruct Msgs failed.", err)
 				return

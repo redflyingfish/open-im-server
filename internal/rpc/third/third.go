@@ -38,6 +38,8 @@ import (
 )
 
 type thirdServer struct {
+	third.UnimplementedThirdServer
+
 	thirdDatabase controller.ThirdDatabase
 	s3dataBase    controller.S3Database
 	userRpcClient rpcclient.UserRpcClient
