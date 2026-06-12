@@ -212,6 +212,14 @@ func (m *MessageRpcClient) GetMsgByConversationIDs(ctx context.Context, docIDs [
 	return resp.MsgDatas, err
 }
 
+func (m *MessageRpcClient) GetConversationsFullSyncSeqs(ctx context.Context, req *msg.GetConversationsFullSyncSeqsReq) (*msg.GetConversationsFullSyncSeqsResp, error) {
+	resp, err := m.Client.GetConversationsFullSyncSeqs(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
 // PullMessageBySeqList retrieves messages by their sequence numbers using the gRPC client.
 // It directly forwards the request to the gRPC client and returns the response along with any error encountered.
 func (m *MessageRpcClient) PullMessageBySeqList(ctx context.Context, req *sdkws.PullMessageBySeqsReq) (*sdkws.PullMessageBySeqsResp, error) {

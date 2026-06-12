@@ -33,6 +33,7 @@ import (
 	"github.com/openimsdk/open-im-server/v3/pkg/rpcclient"
 	"github.com/openimsdk/protocol/constant"
 	pbconversation "github.com/openimsdk/protocol/conversation"
+	pbmsg "github.com/openimsdk/protocol/msg"
 	"github.com/openimsdk/protocol/sdkws"
 	"github.com/openimsdk/tools/db/mongoutil"
 	"github.com/openimsdk/tools/discovery"
@@ -43,13 +44,20 @@ import (
 )
 
 type conversationServer struct {
-	msgRpcClient         *rpcclient.MessageRpcClient
+	msgRpcClient         messageClient
 	user                 *rpcclient.UserRpcClient
 	groupRpcClient       *rpcclient.GroupRpcClient
 	conversationDatabase controller.ConversationDatabase
 
 	conversationNotificationSender *ConversationNotificationSender
 	config                         *Config
+}
+
+type messageClient interface {
+	GetMaxSeqs(ctx context.Context, conversationIDs []string) (map[string]int64, error)
+	GetMsgByConversationIDs(ctx context.Context, docIDs []string, seqs map[string]int64) (map[string]*sdkws.MsgData, error)
+	GetHasReadSeqs(ctx context.Context, userID string, conversationIDs []string) (map[string]int64, error)
+	GetConversationsFullSyncSeqs(ctx context.Context, req *pbmsg.GetConversationsFullSyncSeqsReq) (*pbmsg.GetConversationsFullSyncSeqsResp, error)
 }
 
 type Config struct {
