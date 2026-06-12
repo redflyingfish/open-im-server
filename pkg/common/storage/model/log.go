@@ -26,6 +26,7 @@ type Log struct {
 	Url        string    `bson:"url"`
 	FileName   string    `bson:"file_name"`
 	SystemType string    `bson:"system_type"`
+	AppFramework string    `bson:"app_framework"`
 	Version    string    `bson:"version"`
 	Ex         string    `bson:"ex"`
 }

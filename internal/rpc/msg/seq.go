@@ -55,6 +55,15 @@ func (m *msgServer) GetMsgByConversationIDs(ctx context.Context, req *pbmsg.GetM
 	return &pbmsg.GetMsgByConversationIDsResp{MsgDatas: Msgs}, nil
 }
 
+func (m *msgServer) SetUserConversationsMinSeq(ctx context.Context, req *pbmsg.SetUserConversationsMinSeqReq) (*pbmsg.SetUserConversationsMinSeqResp, error) {
+	for _, userID := range req.UserIDs {
+		if err := m.MsgDatabase.SetUserConversationsMinSeqs(ctx, userID, map[string]int64{req.ConversationID: req.Seq}); err != nil {
+			return nil, err
+		}
+	}
+	return &pbmsg.SetUserConversationsMinSeqResp{}, nil
+}
+
 func (m *msgServer) SetUserConversationMaxSeq(ctx context.Context, req *pbmsg.SetUserConversationMaxSeqReq) (*pbmsg.SetUserConversationMaxSeqResp, error) {
 	for _, userID := range req.OwnerUserID {
 		if err := m.MsgDatabase.SetUserConversationsMaxSeqs(ctx, userID, map[string]int64{req.ConversationID: req.MaxSeq}); err != nil {
